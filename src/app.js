@@ -5,8 +5,19 @@ const server = express();
 server.use(cors());
 server.use(express.json())
 
-server.get('/teste',(req,res)=>{
-    res.send('Isso é um teste')
+const participantes = [];
+
+server.post('/participants',(req,res)=>{
+    const {name} = req.body;
+    if (participantes.includes(name)){
+        return res.sendStatus(409);
+    }
+    participantes.push(name);
+    res.sendStatus(201)
+})
+
+server.get('/participants',(req,res)=>{
+    res.send(participantes);
 })
 
 const PORT = 5000;
