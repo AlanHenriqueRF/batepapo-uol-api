@@ -70,13 +70,13 @@ server.post('/messages',async(req,res)=>{
     const messageSchemec = joi.object({
         to: joi.string().required(),
         text: joi.string().required(),
-        type: joi.any().allow('message','private_message').required(),
+        type: joi.string().valid('message','private_message').required(),
         from: joi.required()
     })
 
     const validation = messageSchemec.validate({...req.body,from:from},{abortEarly:false});
 
-    if (validation.error) return res.sendStatus(422) 
+    if (validation.error) return res.sendStatus(422)
 
     if (!(await db.collection('participants').findOne({name:from}))) return res.sendStatus(422) 
 
@@ -93,6 +93,26 @@ server.post('/messages',async(req,res)=>{
         res.sendStatus(201);
     }catch(err){
         res.sendStatus(500)
+    }
+})
+
+server.get('/messages', async(req,res)=>{
+    const limit = parseInt(req.query.limit);
+    const {user} = req.headers;
+    try{
+        if (limit <= 0 || typeof(limit)!='number'){
+            return res.sendStatus(422)
+        }
+
+        if (!limit){
+            return res.send(await db.collection('messages').find({$or:[{to:"Todos"},{from:user},{to:user}]}).toArray());
+        }
+        const lastmessage = await db.collection('messages').find().sort({_id:-1}).limit(limit).toArray()
+        return res.send(lastmessage.reverse())
+
+    }
+    catch(err){
+        res.status(500).send(err.message);
     }
 })
 
