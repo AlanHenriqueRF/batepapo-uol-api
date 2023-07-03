@@ -100,14 +100,15 @@ server.get('/messages', async(req,res)=>{
     const limit = parseInt(req.query.limit);
     const {user} = req.headers;
     try{
-        if (limit <= 0 || typeof(limit)!='number'){
+        if (limit <= 0 || typeof(limit)!='number' || !limit){
             return res.sendStatus(422)
         }
 
         if (!limit){
             return res.send(await db.collection('messages').find({$or:[{to:"Todos"},{from:user},{to:user}]}).toArray());
         }
-        const lastmessage = await db.collection('messages').find().sort({_id:-1}).limit(limit).toArray()
+
+        const lastmessage = await db.collection('messages').find({$or:[{to:"Todos"},{from:user},{to:user}]}).sort({_id:-1}).limit(limit).toArray()
         return res.send(lastmessage.reverse())
 
     }
@@ -116,5 +117,19 @@ server.get('/messages', async(req,res)=>{
     }
 })
 
+//STATUS
+server.post('/status',async(req,res)=>{
+    const User = req.headers.user;
+    if (!User) res.status(404).send('deu ruin aqui, ele acha que não mandei usuario no  headear');
+    if (!(await db.collection('participants').findOne({name:User}))) return res.status(404).send('deu ruin aqui, minha logica esta ruin');
+
+    try{
+        await db.collection('participants').insertOne({name:User,lastStatus:Date.now()})
+        //await db.collection('participants').update({name:User},{$set:{lastStatus:Date.now()}});
+        res.sendStatus(200);
+    }catch(err){
+        res.sendStatus(500)
+    }
+})
 const PORT = 5000;
 server.listen(PORT,()=>console.log(`O servidor esta rondando na porta ${PORT}`))
