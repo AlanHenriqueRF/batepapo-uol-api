@@ -124,12 +124,38 @@ server.post('/status',async(req,res)=>{
     if (!(await db.collection('participants').findOne({name:User}))) return res.status(404).send('deu ruin aqui, minha logica esta ruin');
 
     try{
-        await db.collection('participants').insertOne({name:User,lastStatus:Date.now()})
-        //await db.collection('participants').update({name:User},{$set:{lastStatus:Date.now()}});
+        //await db.collection('participants').insertOne({name:User,lastStatus:Date.now()})
+        await db.collection('participants').update({name:User},{$set:{lastStatus:Date.now()}});
         res.sendStatus(200);
     }catch(err){
         res.sendStatus(500)
     }
 })
+
+//REMOÇÃO 
+setInterval(async()=>{
+    try{
+        const tempo = Date.now()
+        const participantes = await db.collection('participants').findmany({lastStatus:{$lte:tempo-10}}).toArray()
+
+        const nova_mensagem_array = participantes.map((i)=>{
+            return {
+                from:i.name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs(Date.now()).format('HH:mm:ss')
+            }
+        })
+        await db.collection('participants').deleteMany({lastStatus:{$lte:tempo-10}})
+
+        await db.collection('messages').insertMany(nova_mensagem_array);
+  
+    }catch(err){
+        console.error(500)
+    }
+    
+},15000)
+
 const PORT = 5000;
 server.listen(PORT,()=>console.log(`O servidor esta rondando na porta ${PORT}`))
