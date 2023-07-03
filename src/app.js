@@ -3,8 +3,7 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv"
 import dayjs from "dayjs";
-import joi from 'joi'
-import Joi from "joi";
+import joi from "joi";
 
 const server = express();
 server.use(cors());
@@ -18,15 +17,12 @@ mongoClient.connect()
     .then(()=>db = mongoClient.db())
     .catch((err)=>console.log(err.response))
 
-const participantes = [];
-const mensagens = []
-
 // PARTICIPANTS
 server.post('/participants',async(req,res)=>{
     const {name} = req.body;
 
-    const partiScheme = Joi.object({
-        name: Joi.string().required()
+    const partiScheme = joi.object({
+        name: joi.string().required()
     })
 
     const validation = partiScheme.validate(req.body, {abortEarly:false});
@@ -57,8 +53,13 @@ server.post('/participants',async(req,res)=>{
     }
 })
 
-server.get('/participants',(req,res)=>{
-    res.send(participantes);
+server.get('/participants',async(req,res)=>{
+    try{
+        res.send(await db.collection('participants').find().toArray());
+    }
+    catch(err){
+        res.status(500).send(err.message);
+    }
 })
 
 //MESSAGES
