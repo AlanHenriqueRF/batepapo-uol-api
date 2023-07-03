@@ -123,7 +123,7 @@ server.post('/status',async(req,res)=>{
     try{
         if (!User) res.sendStatus(404);
         if (!(await db.collection('participants').findOne({name:User}))) return res.sendStatus(404);
-        
+
         await db.collection('participants').updateOne({name:User},{$set:{lastStatus:Date.now()}});
         res.sendStatus(200);
     }catch(err){
@@ -148,7 +148,7 @@ setInterval(async()=>{
     })
 
     if (nova_mensagem_array.length !=0){
-        await db.collection('participants').deleteMany({lastStatus:{$lte:tempo-10}})
+        await db.collection('participants').deleteMany({lastStatus:{$lte:tempo-10000}})
 
         await db.collection('messages').insertMany(nova_mensagem_array);
     }
