@@ -120,12 +120,11 @@ server.get('/messages', async(req,res)=>{
 //STATUS
 server.post('/status',async(req,res)=>{
     const User = req.headers.user;
-    if (!User) res.status(404).send('deu ruin aqui, ele acha que não mandei usuario no  headear');
-    if (!(await db.collection('participants').findOne({name:User}))) return res.status(404).send('deu ruin aqui, minha logica esta ruin');
-
     try{
-        //await db.collection('participants').insertOne({name:User,lastStatus:Date.now()})
-        await db.collection('participants').update({name:User},{$set:{lastStatus:Date.now()}});
+        if (!User) res.sendStatus(404);
+        if (!(await db.collection('participants').findOne({name:User}))) return res.sendStatus(404);
+        
+        await db.collection('participants').updateOne({name:User},{$set:{lastStatus:Date.now()}});
         res.sendStatus(200);
     }catch(err){
         res.sendStatus(500)
@@ -135,26 +134,28 @@ server.post('/status',async(req,res)=>{
 //REMOÇÃO 
 setInterval(async()=>{
     try{
-        const tempo = Date.now()
-        const participantes = await db.collection('participants').findmany({lastStatus:{$lte:tempo-10}}).toArray()
+    const tempo = Date.now()
+    const participantes = await db.collection('participants').find({lastStatus:{$lt:tempo-10000}}).toArray()
 
-        const nova_mensagem_array = participantes.map((i)=>{
-            return {
-                from:i.name,
-                to: 'Todos',
-                text: 'sai da sala...',
-                type: 'status',
-                time: dayjs(Date.now()).format('HH:mm:ss')
-            }
-        })
+    const nova_mensagem_array = participantes.map((i)=>{
+        return {
+            from:i.name,
+            to: 'Todos',
+            text: 'sai da sala...',
+            type: 'status',
+            time: dayjs(Date.now()).format('HH:mm:ss')
+        }
+    })
+
+    if (nova_mensagem_array.length !=0){
         await db.collection('participants').deleteMany({lastStatus:{$lte:tempo-10}})
 
         await db.collection('messages').insertMany(nova_mensagem_array);
-  
-    }catch(err){
-        console.error(500)
     }
-    
+    }catch(err){
+        console.log(err)
+    }
+
 },15000)
 
 const PORT = 5000;
